@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="log-in.css">
+    <title>Dashboard - Home Overview | CPEPD</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+
+</head>
+<body>
+    <div class="sidebar" id="sidebar">
+        <button class="toggle-btn" id="toggleBtn"><i class="fas fa-signals"></i></button>
+        <div class="sidebar-header">
+            <h2><i class="fas fa-graduation-cap"></i> CPEPD</h2>
+            <p>Renewable Energy School Event Attendance Monitoring Kiosk</p>
+         </div>
+        <ul>
+         <li class="nav-item" onclick="navigateToPage('status.html')"><i class="fas fa-signal"></i><span>Status</span></li>
+         <li class="nav-item" onclick="navigateToPage('event-management.html')"><i class="fas fa-calendar-alt"></i><span>Event Management</span></li>
+         <li class="nav-item" onclick="navigateToPage('attendance-logs.html')"><i class="fas fa-clipboard-list"></i><span>Attendance Logs</span></li>
+         <li class="nav-item" onclick="navigateToPage('index.html')"><i class="fas fa-user"></i><span>Student Login</span></li>
+         <li class="nav-item" onclick="navigateToPage('evaluation.html')"><i class="fas fa-star"></i><span>Evaluation & Certificates</span></li>
+         <li class="nav-item" onclick="navigateToPage('system-settings.html')"><i class="fas fa-cog"></i><span>System Settings</span></li>
+         <li class="nav-item" onclick="navigateToPage('reports-analytics.html')"><i class="fas fa-chart-bar"></i><span>Reports & Analytics</span></li>
+         <li class="nav-item" onclick="navigateToPage('logout.html')"><i class="fas fa-sign-out-alt"></i><span>Log out</span></li>  
+        </ul>
+    </div>
+
+    <div class="main-content" id="mainContent">
+        <div class="content-header">
+            <h1><i class="fas fa-home"></i>  Status</h1>
+            <p>Real-time summary of system activity and current event status</p>
+        </div>
+        
+        <div class="container">
+        
+       <div class="stats-grid">
+    <div class="stat-card">
+        <h3><i class="fas fa-calendar-alt"></i> Current Event</h3>
+        <div class="stat-number" id="currentEvent">No Active Event</div>
+        <div class="stat-label">Active Event</div>
+    </div>
+    
+   <div class="stat-card" onclick="openStudentList('all')">
+    <h3><i class="fas fa-users"></i> Total Entries</h3>
+    <div class="stat-number" id="totalEntries">0</div>
+</div>
+
+<div class="stat-card" onclick="openStudentList('verified')">
+    <h3><i class="fas fa-check-circle"></i> Students Verified</h3>
+    <div class="stat-number" id="verifiedCount">0</div>
+</div>
+
+<div class="stat-card" onclick="openStudentList('pending')">
+    <h3><i class="fas fa-clock"></i> Student Pending</h3>
+    <div class="stat-number" id="pendingCount">0</div>
+</div>
+
+<div class="stat-card" onclick="openStudentList('rejected')">
+    <h3><i class="fas fa-sign-out-alt"></i> Students Rejected</h3>
+    <div class="stat-number" id="rejectedCount">0</div>
+</div>
+
+
+
+<!-- Student List Modal -->
+<div id="studentModal" class="photo-modal">
+    <span class="close-photo" onclick="closeStudentModal()">&times;</span>
+
+    <div class="photo-modal-content" style="background:white; padding:20px;">
+        <h3 id="modalTitle">Student List</h3>
+
+        <table style="width:100%; border-collapse:collapse;">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Student ID</th>
+                    <th>Event</th>
+                    <th>Status</th>
+                    <th>Entry Time</th>
+                </tr>
+            </thead>
+            <tbody id="studentModalTable"></tbody>
+        </table>
+    </div>
+</div>
+
+
+<script>
+function openStudentList(type) {
+
+    const attendanceData = JSON.parse(localStorage.getItem("attendanceData")) || [];
+    const currentEvent = document.getElementById("currentEvent").innerText;
+
+    let filtered = [];
+
+    // 1. First filter by current event
+    if (currentEvent !== "No Active Event") {
+        filtered = attendanceData.filter(a => a.event === currentEvent);
+    } else {
+        filtered = [...attendanceData];
+    }
+
+    // 2. Then filter by status depending on which card was clicked
+    if (type === "verified") {
+        filtered = filtered.filter(a => a.status === "verified");
+    }
+    else if (type === "pending") {
+        filtered = filtered.filter(a => a.status === "pending");
+    }
+    else if (type === "rejected") {
+        filtered = filtered.filter(a => a.status === "rejected");
+    }
+    // type === "all" shows everything
+
+    // 3. Update modal title
+    const titles = {
+        all: "All Students",
+        verified: "Verified Students",
+        pending: "Pending Students",
+        rejected: "Rejected Students"
+    };
+    document.getElementById("modalTitle").innerText = titles[type];
+
+    // 4. Render table
+    const tbody = document.getElementById("studentModalTable");
+    tbody.innerHTML = "";
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5">No records found</td></tr>`;
+    }
+
+    filtered.forEach(entry => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${entry.name}</td>
+            <td>${entry.studentId}</td>
+            <td>${entry.event}</td>
+            <td>${entry.status}</td>
+            <td>${new Date(entry.entryTime).toLocaleString()}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    document.getElementById("studentModal").style.display = "block";
+}
+
+function closeStudentModal() {
+    document.getElementById("studentModal").style.display = "none";
+}
+</script>
+
+
+
+
+
+<script>
+//================= Connect To My Attendance Logs ==================== //
+function loadDashboardStats() {
+
+    // Get attendance records
+    const attendanceData = JSON.parse(localStorage.getItem("attendanceData")) || [];
+
+    // Get events
+    const events = JSON.parse(localStorage.getItem("events")) || [];
+
+    // Detect current event (last created)
+    const currentEvent = events.length > 0 ? events[events.length - 1].name : "No Active Event";
+
+    // Count stats
+    const total = attendanceData.length;
+    const verified = attendanceData.filter(a => a.status === "verified").length;
+    const pending = attendanceData.filter(a => a.status === "pending").length;
+    const rejected = attendanceData.filter(a => a.status === "rejected").length;
+
+    // Update dashboard
+    document.getElementById("currentEvent").innerText = currentEvent;
+    document.getElementById("totalEntries").innerText = total;
+    document.getElementById("verifiedCount").innerText = verified;
+    document.getElementById("pendingCount").innerText = pending;
+    document.getElementById("rejectedCount").innerText = rejected;
+}
+
+// Load when page opens
+document.addEventListener("DOMContentLoaded", loadDashboardStats);
+
+// Auto refresh every 5 seconds
+setInterval(loadDashboardStats, 5000);
+</script>
+
+
+
+
+
+
+        
+        <div class="power-status">
+            <h3><i class="fas fa-battery-three-quarters"></i> Solar Power Status</h3>
+            <div class="power-indicators">
+                <div class="power-item">
+                    <i class="fas fa-battery-half power-icon battery"></i>
+                    <div>
+                        <div style="font-weight: bold;">Battery: 78%</div>
+                        <div style="font-size: 0.9em; color: #7f8c8d;">Good</div>
+                    </div>
+                </div>
+                <div class="power-item">
+                    <i class="fas fa-plug power-icon ac-backup"></i>
+                    <div>
+                        <div style="font-weight: bold;">AC Backup</div>
+                        <div style="font-size: 0.9em; color: #7f8c8d;">Available</div>
+                    </div>
+                </div>
+                <div class="power-item">
+                    <i class="fas fa-sun power-icon solar"></i>
+                    <div>
+                        <div style="font-weight: bold;">Solar Input</div>
+                        <div style="font-size: 0.9em; color: #7f8c8d;">Active</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="quick-actions">
+            <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
+            <button class="btn-primary" onclick="startNewEvent()">
+                <i class="fas fa-plus"></i> Start New Event
+            </button>
+        </div>
+        
+        <div class="recent-activity">
+            <h3><i class="fas fa-history"></i> Recent Activity</h3>
+            <div class="activity-item">
+                <div>
+                    <strong>Student Check-in:</strong> Maria Santos (2020-045)
+                    <div class="activity-time">2 minutes ago</div>
+                </div>
+                <i class="fas fa-user-check" style="color: #27ae60;"></i>
+            </div>
+            <div class="activity-item">
+                <div>
+                    <strong>Verification Completed:</strong> John Doe (2020-012)
+                    <div class="activity-time">5 minutes ago</div>
+                </div>
+                <i class="fas fa-check-circle" style="color: #27ae60;"></i>
+            </div>
+            <div class="activity-item">
+                <div>
+                    <strong>Student Check-out:</strong> Sarah Johnson (2020-078)
+                    <div class="activity-time">8 minutes ago</div>
+                </div>
+                <i class="fas fa-user-times" style="color: #e74c3c;"></i>
+            </div>
+            <div class="activity-item">
+                <div>
+                    <strong>New Event Created:</strong> General Assembly 2025
+                    <div class="activity-time">1 hour ago</div>
+                </div>
+                <i class="fas fa-calendar-plus" style="color: #3498db;"></i>
+            </div>
+        </div>
+        </div>
+    </div>
+    
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const toggleBtn = document.getElementById('toggleBtn');
+
+        // Toggle sidebar collapse
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('collapsed');
+        });
+
+        // Navigation function
+        function navigateToPage(url) {
+            if (url) {
+                window.location.href = url;
+            }
+        }
+
+        // Logout function
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                alert('You have been logged out successfully.');
+                window.location.href = 'index.html';
+            }
+        }
+
+        function startNewEvent() {
+            if (confirm('Are you sure you want to start a new event? This will end the current event.')) {
+                alert('Redirecting to Event Management page...');
+                window.location.href = 'event-management.html';
+            }
+        }
+        
+        // Simulate real-time updates
+        function updateStats() {
+            // This would typically fetch data from a server
+            console.log('Updating dashboard stats...');
+        }
+        
+        // Update stats every 30 seconds
+        setInterval(updateStats, 30000);
+
+        // Handle window resize for mobile responsiveness
+        window.addEventListener('resize', function() {
+            if (window.innerWidth <= 768) {
+                sidebar.classList.add('collapsed');
+                mainContent.classList.add('collapsed');
+            } else {
+                sidebar.classList.remove('collapsed');
+                mainContent.classList.remove('collapsed');
+            }
+        });
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Dashboard page loaded successfully');
+        });
+
+    </script>
+
+    
+
+
+<!-- 🔐 ADMIN PAGE PROTECTION -->
+    <script>
+    (function () {
+        const isLoggedIn = sessionStorage.getItem("adminLoggedIn");
+
+        if (isLoggedIn !== "true") {
+            const username = prompt("Enter admin username:");
+            const password = prompt("Enter admin password:");
+
+            if (username === "admin" && password === "sac123") {
+                sessionStorage.setItem("adminLoggedIn", "true");
+                alert("Login successful!");
+            } else {
+                alert("Access denied!");
+                window.location.href = "student-login.html";
+            }
+        }
+    })();
+
+    function logout() {
+        sessionStorage.removeItem("adminLoggedIn");
+        alert("Logged out successfully!");
+        window.location.href = "student-login.html";
+    }
+</script>
+
+
+
+
+
+    <script src="script.js"></script>
+</body>
+</html>
